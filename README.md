@@ -5,4 +5,4 @@ You need:
 - Numpy
 - OpenCV
 
-Demo are showed in Main-Function.
+Demos are showed in Main-Function.
