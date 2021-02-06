@@ -1,6 +1,9 @@
+import time
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 '''
 Get the Key Frame from a video
@@ -45,7 +48,7 @@ def abs_diff(pre_image, curr_image):
     gray_pre_image = precess_image(pre_image)
     gray_curr_image = precess_image(curr_image)
     diff = cv2.absdiff(gray_pre_image, gray_curr_image)
-    res, diff = cv2.threshold(diff, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    res, diff = cv2.threshold(diff, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     #  fixme：这里先写成简单加和的形式
     cnt_diff = np.sum(np.sum(diff))
     return cnt_diff
@@ -55,6 +58,7 @@ class KeyFrameGetter:
     '''
     Get the key frame
     '''
+
     def __init__(self, video_path, img_path, window=25):
         '''
         Define the param in model.
@@ -68,12 +72,12 @@ class KeyFrameGetter:
         self.diff = []
         self.idx = []
 
-    def load_diff_between_frm(self, smooth=True, alpha=0.07):
+    def load_diff_between_frm(self, smooth=False, alpha=0.07):
         '''
         Calculate and get the model param
         :param smooth: Decide if you want to smooth the difference.
         :param alpha: Difference factor
-        :return: 
+        :return:
         '''
         print("load_diff_between_frm")
         cap = cv2.VideoCapture(self.video_path)  # 打开视频文件
@@ -113,7 +117,7 @@ class KeyFrameGetter:
         self.diff = np.array(diff)
         mean = np.mean(self.diff)
         dev = np.std(self.diff)
-        self.diff = (self.diff-mean)/dev
+        self.diff = (self.diff - mean) / dev
 
         #  在内部完成
         self.pick_idx()
@@ -126,12 +130,12 @@ class KeyFrameGetter:
         '''
         print("pick_idx")
         for i, d in enumerate(self.diff):
-            ub = len(self.diff)-1
+            ub = len(self.diff) - 1
             lb = 0
-            if not i-self.window//2 < lb:
-                lb = i-self.window//2
-            if not i+self.window//2 > ub:
-                ub = i+self.window//2
+            if not i - self.window // 2 < lb:
+                lb = i - self.window // 2
+            if not i + self.window // 2 > ub:
+                ub = i + self.window // 2
 
             comp_window = self.diff[lb:ub]
             if d >= max(comp_window):
@@ -140,12 +144,12 @@ class KeyFrameGetter:
         tmp = np.array(self.idx)
         tmp = tmp + 1  # to make up the gap when diff
         self.idx = tmp.tolist()
-        print("Extract the Frame Index:"+str(self.idx))
+        print("Extract the Frame Index:" + str(self.idx))
 
     def save_key_frame(self):
         '''
         Save the key frame image
-        :return: 
+        :return:
         '''
         print("save_key_frame")
         cap = cv2.VideoCapture(self.video_path)  # 打开视频文件
@@ -157,8 +161,8 @@ class KeyFrameGetter:
             if not success:
                 break
             if frm in idx:
-                print('Extracting idx:'+str(frm))
-                cv2.imwrite(self.img_path+'/' + str(frm) + ".jpg", data)
+                # print('Extracting idx:'+str(frm))
+                cv2.imwrite(self.img_path + '/' + str(frm) + ".jpg", data)
                 idx.remove(frm)
             if not idx:
                 print('Done！')
@@ -167,10 +171,10 @@ class KeyFrameGetter:
     def plot_diff_time(self):
         '''
         Plot the distribution of the difference along to the frame increasing.
-        :return: 
+        :return:
         '''
         plt.plot(self.diff, '-b')
-        plt.plot(np.array(self.idx)-1, [self.diff[i] for i in self.idx], 'or')
+        plt.plot(np.array(self.idx) - 1, [self.diff[i-1] for i in self.idx], 'or')
         plt.xlabel('Frame Pair Index')
         plt.ylabel('Difference')
         plt.legend(['Each Frame', 'Extract Frame'])
@@ -180,11 +184,27 @@ class KeyFrameGetter:
 
 
 if __name__ == '__main__':
-    kfg = KeyFrameGetter('video/pikachu.mp4', 'img', 75)
+    sa = []
+    for root, dirs, files in os.walk(r"video"):
+        for file in files:
 
-    kfg.load_diff_between_frm(alpha=0.07)  # 获取模型参数
-    kfg.save_key_frame()  # 存下index列表里对应图片
+            source_path = os.path.join(root, file)
+            dir_path = './img/' + file.strip('.avi').strip('.mp4') + '/'
 
-    kfg.plot_diff_time()
+            print("源文件目录为", root)
+            print("源文件路径为", source_path)
+            print("目的文件路径为", dir_path)
 
+            if not os.path.exists(dir_path):
+                os.mkdir(dir_path)
 
+            kfg = KeyFrameGetter(source_path, dir_path, 100)
+            a = time.time()
+            kfg.load_diff_between_frm(alpha=0.07)  # 获取模型参数
+            b = time.time()
+            sa.append(b - a)
+            print(sa)
+            kfg.save_key_frame()  # 存下index列表里对应图片
+
+            # 此语句是打印每一个图片的差分信息
+            # kfg.plot_diff_time()
