@@ -33,3 +33,8 @@ Demos are showed in Main-Function.
 
 3. Then you can click `run` and get your result in `./img/`
 
+
+
+## My Thoughts...
+https://segmentfault.com/a/1190000022192846
+
